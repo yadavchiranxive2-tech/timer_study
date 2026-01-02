@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Dashboard</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #064e3b, #022c22);
+    color: #ecfeff;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    text-align: center;
+    padding: 15px;
+    font-size: 26px;
+    font-weight: bold;
+    color: #7dd3fc;
+  }
+
+  .topbar input {
+    background: transparent;
+    border: none;
+    color: #7dd3fc;
+    text-align: center;
+    font-size: 26px;
+    width: 100%;
+    outline: none;
+  }
+
+  .container {
+    display: grid;
+    grid-template-columns: 2.3fr 1.4fr;
+    gap: 20px;
+    padding: 20px 40px;
+  }
+
+  .card {
+    background: rgba(2, 44, 34, 0.9);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+
+  .study {
+    text-align: center;
+  }
+
+  .big-timer {
+    font-size: 64px;
+    margin: 15px 0;
+  }
+
+  .subtimer {
+    font-size: 34px;
+    margin-top: 10px;
+    opacity: .85;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+
+  input, textarea, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: none;
+    font-size: 15px;
+  }
+
+  button {
+    background: #34d399;
+    color: #022c22;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  button.stop {
+    background: #fb7185;
+    color: #300;
+  }
+
+  .right-top {
+    font-size: 14px;
+    text-align: right;
+  }
+
+  .redmode {
+    background: #120000 !important;
+    color: #ffdada;
+  }
+
+  /* 📱 MOBILE ADJUSTMENTS */
+  @media (max-width: 900px) {
+    .container {
+      grid-template-columns: 1fr;
+      padding: 15px;
+    }
+
+    .big-timer {
+      font-size: 48px;
+    }
+
+    .subtimer {
+      font-size: 26px;
+    }
+
+    .right-top {
+      text-align: left;
+    }
+
+    .topbar input {
+      font-size: 20px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <input id="topic" placeholder="Anatomy – Upper Limb (Brachial Plexus)">
+</div>
+
+<div class="container">
+
+  <!-- STUDY TIMER -->
+  <div class="card study">
+    <h2>📚 Study Timer</h2>
+
+    <div class="row">
+      <input type="number" id="studyH" placeholder="Hours">
+      <input type="number" id="studyM" placeholder="Minutes">
+    </div>
+
+    <div class="row">
+      <button onclick="startStudy()">▶ Start</button>
+      <button class="stop" onclick="stopStudy()">⏹ Stop</button>
+    </div>
+
+    <div class="big-timer" id="studyTimer">00:00:00</div>
+
+    <h3>☕ Break</h3>
+    <input type="number" id="breakTime" placeholder="Break minutes">
+
+    <div class="row">
+      <button onclick="startBreak()">Start</button>
+      <button class="stop" onclick="stopBreak()">Stop</button>
+    </div>
+
+    <div class="subtimer" id="breakTimer">00:00:00</div>
+  </div>
+
+  <!-- RIGHT SIDE -->
+  <div class="card right-top">
+    <div id="datetime"></div>
+    <p>🔥 Streak: <span id="streak">0</span> days</p>
+
+    <h4>📅 Exam Date</h4>
+    <input type="date" id="examDate">
+    <p id="examCounter"></p>
+
+    <h4>🎯 Study Goal</h4>
+    <textarea id="goal" placeholder="Finish muscles + nerve supply"></textarea>
+
+    <button onclick="toggleRed()">🌙 Night Mode</button>
+  </div>
+
+</div>
+
+<script>
+let studyInt, breakInt;
+let studyLeft = 0, breakLeft = 0;
+
+function tick() {
+  datetime.innerText = new Date().toLocaleString();
+  updateExam();
+}
+setInterval(tick, 1000); tick();
+
+function fmt(t){
+  let h=Math.floor(t/3600),
+      m=Math.floor((t%3600)/60),
+      s=t%60;
+  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
+
+function save(){
+  ["topic","goal","studyH","studyM","breakTime","examDate"].forEach(
+    id=>localStorage.setItem(id, document.getElementById(id).value)
+  );
+}
+
+function startStudy(){
+  save(); clearInterval(studyInt);
+  if(studyLeft<=0)
+    studyLeft=(Number(studyH.value||0)*60+Number(studyM.value||0))*60;
+  studyInt=setInterval(()=>{
+    if(studyLeft<=0){clearInterval(studyInt);updateStreak();return;}
+    studyTimer.innerText=fmt(studyLeft--);
+  },1000);
+}
+function stopStudy(){ clearInterval(studyInt); }
+
+function startBreak(){
+  save(); clearInterval(breakInt);
+  if(breakLeft<=0) breakLeft=breakTime.value*60;
+  breakInt=setInterval(()=>{
+    if(breakLeft<=0){clearInterval(breakInt);return;}
+    breakTimer.innerText=fmt(breakLeft--);
+  },1000);
+}
+function stopBreak(){ clearInterval(breakInt); }
+
+function toggleRed(){ document.body.classList.toggle("redmode"); }
+
+function updateStreak(){
+  let t=new Date().toDateString();
+  if(localStorage.getItem("last")!==t){
+    localStorage.setItem("streak",(Number(localStorage.getItem("streak"))||0)+1);
+    localStorage.setItem("last",t);
+  }
+  streak.innerText=localStorage.getItem("streak")||0;
+}
+
+function updateExam(){
+  if(!examDate.value) return;
+  let d=Math.ceil((new Date(examDate.value)-new Date())/86400000);
+  examCounter.innerText=d>=0?`⏳ ${d} days left`:"✅ Exam over";
+}
+
+window.onload=()=>{
+  ["topic","goal","studyH","studyM","breakTime","examDate"].forEach(
+    id=>document.getElementById(id).value=localStorage.getItem(id)||""
+  );
+  streak.innerText=localStorage.getItem("streak")||0;
+};
+</script>
+
+</body>
+</html>
